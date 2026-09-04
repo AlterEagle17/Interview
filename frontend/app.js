@@ -1,45 +1,66 @@
 const $ = id => document.getElementById(id);
 
+
 // =====================================================
-// BACKEND URL
+// BACKEND
 // =====================================================
 
-// Local backend for now
-//const API_BASE = "suijith-project-production.up.railway.app";
-const API_BASE = "https://suijith-project-production.up.railway.app";
+const API_BASE =
+    "https://suijith-project-production.up.railway.app";
+
 
 // =====================================================
 // INTERVIEW STATE
 // =====================================================
 
+const totalQuestions = 10;
+
 let currentQuestion = "";
-let currentAnswer = "";
-let averageScore = 0;
 
 let questionNumber = 0;
-const totalQuestions = 10;
+
+let averageScore = 0;
+
+let timerInterval = null;
+
+let timeLeft = 90;
+
+let interviewHistory = [];
+
+
+// =====================================================
+// AGENTS
+// =====================================================
+
+const agentElements = {
+
+    Sarah: $("agentSarah"),
+
+    Alex: $("agentAlex"),
+
+    Marcus: $("agentMarcus")
+
+};
 
 
 // =====================================================
 // RESUME
 // =====================================================
 
-$("resume").onchange = async e => {
+$("resume").onchange = e => {
 
     const file = e.target.files[0];
 
-    $("file").textContent = file
-        ? file.name
-        : "Drop your resume here";
+    $("file").textContent =
+        file
+            ? file.name
+            : "Drop your resume here";
 
-    if (file) {
-        toast("Resume selected");
-    }
 };
 
 
 // =====================================================
-// START INTERVIEW
+// START
 // =====================================================
 
 $("start").onclick = startInterview;
@@ -47,83 +68,145 @@ $("start").onclick = startInterview;
 
 async function startInterview() {
 
-    const company = $("company").value.trim();
-    const role = $("role").value.trim();
-    const file = $("resume").files[0];
+    const company =
+        $("company").value.trim();
+
+    const role =
+        $("role").value.trim();
+
+    const file =
+        $("resume").files[0];
+
 
     if (!company) {
+
         toast("Enter the company name");
+
         return;
+
     }
+
 
     if (!role) {
+
         toast("Enter the role");
+
         return;
+
     }
 
+
     if (!file) {
+
         toast("Upload your resume");
+
         return;
+
     }
+
 
     try {
 
         $("start").disabled = true;
-        $("start").textContent = "Starting...";
 
-        $("status").textContent = "Starting interview";
+        $("start").textContent =
+            "Starting...";
+
+
+        $("status").textContent =
+            "Starting interview";
+
+
         $("dot").classList.add("live");
 
-        // Read resume text
-        const resume = await file.text();
 
-        const response = await fetch(
-            `${API_BASE}/api/start-interview`,
-            {
-                method: "POST",
+        const resume =
+            await file.text();
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
 
-                body: JSON.stringify({
-                    company: company,
-                    role: role,
-                    resume: resume
-                })
-            }
-        );
+        const response =
+            await fetch(
+                `${API_BASE}/api/start-interview`,
+                {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        company,
+
+                        role,
+
+                        resume
+
+                    })
+
+                }
+            );
+
 
         if (!response.ok) {
-            throw new Error("Backend request failed");
+
+            throw new Error(
+                "Backend request failed"
+            );
+
         }
 
-        const data = await response.json();
+
+        const data =
+            await response.json();
+
 
         if (!data.success) {
-            throw new Error("Interview could not start");
+
+            throw new Error(
+                "Interview could not start"
+            );
+
         }
 
-        // Store first question
-        currentQuestion = data.question;
+
+        currentQuestion =
+            data.question;
+
 
         questionNumber = 1;
 
-        // Show interview screen
-        $("setup").classList.add("hidden");
-        $("interview").classList.remove("hidden");
+        averageScore = 0;
+
+        interviewHistory = [];
+
+
+        $("setup")
+            .classList
+            .add("hidden");
+
+
+        $("interview")
+            .classList
+            .remove("hidden");
+
 
         $("title").textContent =
             `${role} interview`;
 
+
         $("status").textContent =
             "Interview active";
 
+
         renderQuestion();
 
-        toast("Interview started");
 
-    } catch (error) {
+    }
+
+    catch (error) {
 
         console.error(error);
 
@@ -131,12 +214,17 @@ async function startInterview() {
             "Could not connect to interview backend"
         );
 
-    } finally {
+    }
+
+    finally {
 
         $("start").disabled = false;
+
         $("start").innerHTML =
             'Start interview <span>→</span>';
+
     }
+
 }
 
 
@@ -149,24 +237,34 @@ function renderQuestion() {
     $("question").textContent =
         currentQuestion;
 
+
     $("count").textContent =
         `${questionNumber} / ${totalQuestions}`;
+
 
     $("bar").style.width =
         `${(questionNumber / totalQuestions) * 100}%`;
 
+
     $("answer").value = "";
 
-    words();
 
-    $("evaluation").classList.add("hidden");
+    $("evaluation")
+        .classList
+        .add("hidden");
 
-    $("badge").textContent = "READY";
 
-    $("signal").textContent = "Listening";
+    $("badge").textContent =
+        "READY";
+
+
+    $("signal").textContent =
+        "Listening";
+
 
     $("signalText").textContent =
-        "Your answer will be evaluated by all three interview agents.";
+        "Take your time and answer clearly.";
+
 
     $("focus").textContent =
         questionNumber % 3 === 0
@@ -174,6 +272,73 @@ function renderQuestion() {
             : questionNumber % 2 === 0
                 ? "Problem solving"
                 : "Architecture";
+
+
+    $("speakerRole").textContent =
+        "AI Interviewer";
+
+
+    startTimer();
+
+}
+
+
+// =====================================================
+// TIMER
+// =====================================================
+
+function startTimer() {
+
+    clearInterval(timerInterval);
+
+
+    timeLeft = 90;
+
+    updateTimer();
+
+
+    timerInterval =
+        setInterval(() => {
+
+            timeLeft--;
+
+            updateTimer();
+
+
+            if (timeLeft <= 0) {
+
+                clearInterval(timerInterval);
+
+                toast(
+                    "Time is up. Submitting answer..."
+                );
+
+                submitAnswer();
+
+            }
+
+        }, 1000);
+
+}
+
+
+function updateTimer() {
+
+    const minutes =
+        Math.floor(timeLeft / 60)
+            .toString()
+            .padStart(2, "0");
+
+
+    const seconds =
+        (timeLeft % 60)
+            .toString()
+            .padStart(2, "0");
+
+
+    $("timer").textContent =
+        `${minutes}:${seconds}`;
+
 }
 
 
@@ -181,21 +346,27 @@ function renderQuestion() {
 // WORD COUNT
 // =====================================================
 
-$("answer").oninput = words;
+$("answer").oninput =
+    updateWordCount;
 
 
-function words() {
+function updateWordCount() {
 
     const text =
-        $("answer").value.trim();
+        $("answer")
+            .value
+            .trim();
+
 
     const count =
         text
             ? text.split(/\s+/).length
             : 0;
 
+
     $("words").textContent =
         `${count} words`;
+
 }
 
 
@@ -209,217 +380,233 @@ $("answer").onkeydown = e => {
         e.ctrlKey &&
         e.key === "Enter"
     ) {
+
         submitAnswer();
+
     }
+
 };
 
 
-$("submit").onclick = submitAnswer;
-
-
 // =====================================================
-// SUBMIT ANSWER
+// SUBMIT
 // =====================================================
+
+$("submit").onclick =
+    submitAnswer;
+
 
 async function submitAnswer() {
 
     const answer =
-        $("answer").value.trim();
+        $("answer")
+            .value
+            .trim();
+
 
     if (!answer) {
-        toast("Write an answer first");
+
+        toast(
+            "Write an answer first"
+        );
+
         return;
+
     }
+
+
+    clearInterval(timerInterval);
+
 
     const company =
-        $("company").value.trim();
+        $("company")
+            .value
+            .trim();
+
 
     const role =
-        $("role").value.trim();
+        $("role")
+            .value
+            .trim();
+
 
     const file =
-        $("resume").files[0];
+        $("resume")
+            .files[0];
+
 
     if (!file) {
-        toast("Resume is missing");
+
+        toast(
+            "Resume is missing"
+        );
+
         return;
+
     }
+
 
     try {
 
         $("submit").disabled = true;
 
+
         $("badge").textContent =
             "EVALUATING";
 
+
         $("signal").textContent =
-            "Three agents are evaluating";
+            "Three agents evaluating";
+
 
         $("signalText").textContent =
-            "Sarah, Alex and Marcus are reviewing your answer in parallel.";
+            "Sarah, Alex and Marcus are reviewing your answer.";
 
-        // Read resume again
+
         const resume =
             await file.text();
 
 
         // =============================================
-        // 1. EVALUATE ANSWER
+        // EVALUATE
         // =============================================
 
-        const evaluationResponse =
+        const response =
             await fetch(
                 `${API_BASE}/api/evaluate-answer`,
                 {
+
                     method: "POST",
 
                     headers: {
-                        "Content-Type": "application/json"
+                        "Content-Type":
+                            "application/json"
                     },
 
                     body: JSON.stringify({
-                        company: company,
-                        role: role,
-                        resume: resume,
-                        question: currentQuestion,
-                        answer: answer
+
+                        company,
+
+                        role,
+
+                        resume,
+
+                        question:
+                            currentQuestion,
+
+                        answer
+
                     })
+
                 }
             );
 
 
-        if (!evaluationResponse.ok) {
+        if (!response.ok) {
+
             throw new Error(
                 "Evaluation request failed"
             );
+
         }
 
 
         const evaluation =
-            await evaluationResponse.json();
+            await response.json();
 
 
         if (!evaluation.success) {
+
             throw new Error(
                 "Evaluation failed"
             );
+
         }
 
 
-        // Store average score
         averageScore =
             evaluation.average_score;
 
 
-        // Convert 0-100 → 0-10
         const scoreOutOf10 =
-            (averageScore / 10).toFixed(1);
+            (
+                averageScore / 10
+            ).toFixed(1);
 
 
         $("score").textContent =
             scoreOutOf10;
 
 
-        // Show feedback
-        const feedback =
+        // =============================================
+        // STORE HISTORY
+        // =============================================
+
+        interviewHistory.push({
+
+            questionNumber,
+
+            question:
+                currentQuestion,
+
+            answer,
+
+            averageScore,
+
+            evaluations:
+                evaluation.evaluations
+
+        });
+
+
+        // =============================================
+        // SHOW 3 AGENTS
+        // =============================================
+
+        renderAgentResults(
             evaluation.evaluations
-                .map(agent =>
-                    `${agent.agent}: ${agent.feedback}`
-                )
-                .join(" ");
+        );
 
 
         $("feedback").textContent =
-            feedback;
+            "Review the evaluation above before continuing.";
 
 
         $("evaluation")
-            .classList.remove("hidden");
+            .classList
+            .remove("hidden");
 
 
         $("badge").textContent =
             "EVALUATED";
 
+
         $("signal").textContent =
             "Evaluation complete";
 
 
+        $("signalText").textContent =
+            "Your answer has been reviewed by all three AI agents.";
+
+
         // =============================================
-        // 2. FINISH OR GET NEXT QUESTION
+        // IMPORTANT:
+        // NO AUTOMATIC NEXT QUESTION
         // =============================================
 
-        if (questionNumber >= totalQuestions) {
+        if (
+            questionNumber >=
+            totalQuestions
+        ) {
 
-            finish();
+            $("nextQuestion").textContent =
+                "View final review →";
 
-            return;
         }
 
+    }
 
-        // =============================================
-        // 3. GET NEXT ADAPTIVE QUESTION
-        // =============================================
-
-        const nextResponse =
-            await fetch(
-                `${API_BASE}/api/next-question`,
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        company: company,
-                        role: role,
-                        resume: resume,
-                        previous_question:
-                            currentQuestion,
-                        previous_answer:
-                            answer,
-                        average_score:
-                            averageScore
-                    })
-                }
-            );
-
-
-        if (!nextResponse.ok) {
-            throw new Error(
-                "Next question request failed"
-            );
-        }
-
-
-        const nextData =
-            await nextResponse.json();
-
-
-        if (!nextData.success) {
-            throw new Error(
-                "Next question failed"
-            );
-        }
-
-
-        // Store next question
-        currentQuestion =
-            nextData.next_question;
-
-
-        questionNumber++;
-
-
-        // Small delay so user can see evaluation
-        setTimeout(() => {
-
-            renderQuestion();
-
-        }, 1200);
-
-
-    } catch (error) {
+    catch (error) {
 
         console.error(error);
 
@@ -430,10 +617,444 @@ async function submitAnswer() {
         $("badge").textContent =
             "ERROR";
 
-    } finally {
+    }
+
+    finally {
 
         $("submit").disabled = false;
+
     }
+
+}
+
+
+// =====================================================
+// AGENT RESULTS
+// =====================================================
+
+function renderAgentResults(
+    evaluations
+) {
+
+    const container =
+        $("agentResults");
+
+
+    container.innerHTML = "";
+
+
+    evaluations.forEach(agent => {
+
+        const score =
+            (
+                agent.score / 10
+            ).toFixed(1);
+
+
+        const card =
+            document.createElement("div");
+
+
+        card.className =
+            "agent-result";
+
+
+        card.innerHTML = `
+
+            <strong>
+                ${agent.agent}
+            </strong>
+
+            <span>
+                ${score}/10
+            </span>
+
+            <p>
+                ${agent.feedback}
+            </p>
+
+        `;
+
+
+        container.appendChild(card);
+
+
+        // Highlight all agents
+        if (
+            agentElements[agent.agent]
+        ) {
+
+            agentElements[
+                agent.agent
+            ].classList.add("evaluated");
+
+        }
+
+    });
+
+}
+
+
+// =====================================================
+// NEXT QUESTION BUTTON
+// =====================================================
+
+$("nextQuestion").onclick =
+    nextQuestion;
+
+
+async function nextQuestion() {
+
+    // =============================================
+    // FINAL QUESTION
+    // =============================================
+
+    if (
+        questionNumber >=
+        totalQuestions
+    ) {
+
+        showFinalReview();
+
+        return;
+
+    }
+
+
+    const latest =
+        interviewHistory[
+            interviewHistory.length - 1
+        ];
+
+
+    const company =
+        $("company")
+            .value
+            .trim();
+
+
+    const role =
+        $("role")
+            .value
+            .trim();
+
+
+    const file =
+        $("resume")
+            .files[0];
+
+
+    try {
+
+        $("nextQuestion").disabled = true;
+
+
+        $("signal").textContent =
+            "Generating next question";
+
+
+        const resume =
+            await file.text();
+
+
+        const response =
+            await fetch(
+                `${API_BASE}/api/next-question`,
+                {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        company,
+
+                        role,
+
+                        resume,
+
+                        previous_question:
+                            latest.question,
+
+                        previous_answer:
+                            latest.answer,
+
+                        average_score:
+                            latest.averageScore
+
+                    })
+
+                }
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Next question request failed"
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if (!data.success) {
+
+            throw new Error(
+                "Next question failed"
+            );
+
+        }
+
+
+        currentQuestion =
+            data.next_question;
+
+
+        questionNumber++;
+
+
+        // Reset agent states
+
+        Object.values(
+            agentElements
+        ).forEach(element => {
+
+            element.classList.remove(
+                "evaluated"
+            );
+
+        });
+
+
+        renderQuestion();
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        toast(
+            "Could not generate next question"
+        );
+
+    }
+
+    finally {
+
+        $("nextQuestion").disabled =
+            false;
+
+    }
+
+}
+
+
+// =====================================================
+// FINAL REVIEW
+// =====================================================
+
+function showFinalReview() {
+
+    clearInterval(timerInterval);
+
+
+    $("interview")
+        .classList
+        .add("hidden");
+
+
+    $("review")
+        .classList
+        .remove("hidden");
+
+
+    $("status").textContent =
+        "Interview completed";
+
+
+    $("bar").style.width =
+        "100%";
+
+
+    $("count").textContent =
+        `${totalQuestions} / ${totalQuestions}`;
+
+
+    // =============================================
+    // FINAL SCORE
+    // =============================================
+
+    const total =
+        interviewHistory.reduce(
+            (sum, item) =>
+                sum + item.averageScore,
+            0
+        );
+
+
+    const finalScore =
+        interviewHistory.length
+            ? (
+                total /
+                interviewHistory.length /
+                10
+            ).toFixed(1)
+            : "0.0";
+
+
+    $("finalScore").textContent =
+        finalScore;
+
+
+    // =============================================
+    // AGENT FINAL SCORES
+    // =============================================
+
+    const agentTotals = {};
+
+
+    interviewHistory.forEach(item => {
+
+        item.evaluations.forEach(agent => {
+
+            if (!agentTotals[agent.agent]) {
+
+                agentTotals[agent.agent] = [];
+
+            }
+
+            agentTotals[
+                agent.agent
+            ].push(agent.score);
+
+        });
+
+    });
+
+
+    const finalAgents =
+        $("finalAgents");
+
+
+    finalAgents.innerHTML = "";
+
+
+    Object.entries(
+        agentTotals
+    ).forEach(
+        ([agent, scores]) => {
+
+            const avg =
+                scores.reduce(
+                    (a, b) => a + b,
+                    0
+                ) / scores.length;
+
+
+            const card =
+                document.createElement("div");
+
+
+            card.className =
+                "agent-result";
+
+
+            card.innerHTML = `
+
+                <strong>
+                    ${agent}
+                </strong>
+
+                <span>
+                    ${(avg / 10).toFixed(1)}/10
+                </span>
+
+                <p>
+                    Final average evaluation
+                </p>
+
+            `;
+
+
+            finalAgents.appendChild(
+                card
+            );
+
+        }
+    );
+
+
+    // =============================================
+    // QUESTION-BY-QUESTION REVIEW
+    // =============================================
+
+    const reviewList =
+        $("reviewList");
+
+
+    reviewList.innerHTML = "";
+
+
+    interviewHistory.forEach(item => {
+
+        const block =
+            document.createElement("div");
+
+
+        block.className =
+            "review-item";
+
+
+        block.innerHTML = `
+
+            <h3>
+                Question ${item.questionNumber}
+            </h3>
+
+            <p>
+                <strong>Question:</strong>
+                ${item.question}
+            </p>
+
+            <p>
+                <strong>Your answer:</strong>
+                ${item.answer}
+            </p>
+
+            <p>
+                <strong>Score:</strong>
+                ${(item.averageScore / 10).toFixed(1)}/10
+            </p>
+
+            <p>
+                <strong>Feedback:</strong>
+                ${item.evaluations
+                    .map(
+                        agent =>
+                            `${agent.agent}: ${agent.feedback}`
+                    )
+                    .join(" | ")
+                }
+            </p>
+
+        `;
+
+
+        reviewList.appendChild(
+            block
+        );
+
+    });
+
 }
 
 
@@ -443,59 +1064,51 @@ async function submitAnswer() {
 
 $("play").onclick = () => {
 
-    if ($("play").dataset.playing) {
+    if (
+        $("play")
+            .dataset
+            .playing
+    ) {
+
         return;
+
     }
 
-    $("play").dataset.playing = "1";
+
+    $("play")
+        .dataset
+        .playing = "1";
+
 
     $("badge").textContent =
         "SPEAKING";
 
-    $("play").firstChild.textContent =
+
+    $("play")
+        .firstChild
+        .textContent =
         "Playing... ";
+
 
     setTimeout(() => {
 
-        $("play").dataset.playing = "";
+        $("play")
+            .dataset
+            .playing = "";
 
-        $("play").firstChild.textContent =
+
+        $("play")
+            .firstChild
+            .textContent =
             "▶  Play question ";
+
 
         $("badge").textContent =
             "READY";
 
     }, 1800);
+
 };
-
-
-// =====================================================
-// FINISH INTERVIEW
-// =====================================================
-
-function finish() {
-
-    $("interview")
-        .classList.add("hidden");
-
-    $("complete")
-        .classList.remove("hidden");
-
-    $("status").textContent =
-        "Completed";
-
-    $("count").textContent =
-        `${totalQuestions} / ${totalQuestions}`;
-
-    $("bar").style.width =
-        "100%";
-
-    $("completeText").textContent =
-        `Your ${
-            $("role").value.trim()
-            || "Software Engineer"
-        } interview has been evaluated by the multi-agent panel.`;
-}
 
 
 // =====================================================
@@ -505,12 +1118,16 @@ function finish() {
 function reset() {
 
     location.reload();
+
 }
 
 
-$("reset").onclick = reset;
+$("reset").onclick =
+    reset;
 
-$("again").onclick = reset;
+
+$("again").onclick =
+    reset;
 
 
 // =====================================================
@@ -522,17 +1139,28 @@ function toast(message) {
     const element =
         $("toast");
 
+
     element.textContent =
         message;
 
-    element.classList.add("show");
 
-    clearTimeout(window.tt);
+    element.classList.add(
+        "show"
+    );
+
+
+    clearTimeout(
+        window.tt
+    );
+
 
     window.tt =
         setTimeout(() => {
 
-            element.classList.remove("show");
+            element.classList.remove(
+                "show"
+            );
 
-        }, 1700);
+        }, 2200);
+
 }

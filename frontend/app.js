@@ -5,8 +5,8 @@ const $ = id => document.getElementById(id);
 // =====================================================
 
 // Local backend for now
-const API_BASE = "suijith-project-production.up.railway.app";
-
+//const API_BASE = "suijith-project-production.up.railway.app";
+const API_BASE = "https://suijith-project-production.up.railway.app";
 
 // =====================================================
 // INTERVIEW STATE

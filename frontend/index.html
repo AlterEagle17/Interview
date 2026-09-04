@@ -4,77 +4,464 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>InterviewAI</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-<div class="glow one"></div><div class="glow two"></div>
+
+<div class="glow one"></div>
+<div class="glow two"></div>
+
 <div class="shell">
+
+<!-- =====================================================
+     SIDEBAR
+===================================================== -->
+
 <aside class="side">
-  <div class="brand"><b>AI</b><div><strong>Interview<span>AI</span></strong><small>Autonomous interviewer</small></div></div>
-  <div class="side-block"><label>SESSION</label><div><i id="dot"></i><span id="status">Not started</span></div></div>
-  <div class="side-block"><label>INTERVIEW PANEL</label>
-    <div class="agents">
-      <div class="agent active"><em>S</em><p><b>Sarah</b><small>HR Lead</small></p></div>
-      <div class="agent"><em>A</em><p><b>Alex</b><small>Systems Architect</small></p></div>
-      <div class="agent"><em>M</em><p><b>Marcus</b><small>Tech Lead</small></p></div>
+
+  <div class="brand">
+    <b>AI</b>
+    <div>
+      <strong>Interview<span>AI</span></strong>
+      <small>Autonomous interviewer</small>
     </div>
   </div>
-  <footer>● Multi-agent evaluation enabled</footer>
+
+  <div class="side-block">
+    <label>SESSION</label>
+
+    <div>
+      <i id="dot"></i>
+      <span id="status">Not started</span>
+    </div>
+  </div>
+
+  <div class="side-block">
+
+    <label>INTERVIEW PANEL</label>
+
+    <div class="agents">
+
+      <div class="agent active" id="agentSarah">
+        <em>S</em>
+        <p>
+          <b>Sarah</b>
+          <small>HR Lead</small>
+        </p>
+      </div>
+
+      <div class="agent" id="agentAlex">
+        <em>A</em>
+        <p>
+          <b>Alex</b>
+          <small>Systems Architect</small>
+        </p>
+      </div>
+
+      <div class="agent" id="agentMarcus">
+        <em>M</em>
+        <p>
+          <b>Marcus</b>
+          <small>Tech Lead</small>
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+
+  <footer>
+    ● Multi-agent evaluation enabled
+  </footer>
+
 </aside>
 
+
+<!-- =====================================================
+     MAIN
+===================================================== -->
+
 <main>
+
 <header>
-  <div><label>AI INTERVIEW ROOM</label><h1 id="title">Prepare your interview</h1></div>
-  <div class="progress"><span id="count">0 / 10</span><div><i id="bar"></i></div><button id="reset">↻</button></div>
+
+  <div>
+
+    <label>AI INTERVIEW ROOM</label>
+
+    <h1 id="title">
+      Prepare your interview
+    </h1>
+
+  </div>
+
+  <div class="progress">
+
+    <span id="count">
+      0 / 10
+    </span>
+
+    <div>
+      <i id="bar"></i>
+    </div>
+
+    <button id="reset">
+      ↻
+    </button>
+
+  </div>
+
 </header>
 
+
+<!-- =====================================================
+     SETUP
+===================================================== -->
+
 <section id="setup" class="setup">
+
   <div class="intro">
-    <mark>MULTI-AGENT · ADAPTIVE · VOICE READY</mark>
-    <h2>Let's find out<br>how <span>you think.</span></h2>
-    <p>Upload your resume and start a dynamic interview. Three specialized AI interviewers evaluate every answer and adapt the next question to you.</p>
+
+    <mark>
+      MULTI-AGENT · ADAPTIVE · VOICE READY
+    </mark>
+
+    <h2>
+      Let's find out<br>
+      how <span>you think.</span>
+    </h2>
+
+    <p>
+      Upload your resume and start a dynamic interview.
+      Three specialized AI interviewers evaluate every answer
+      and adapt the next question to you.
+    </p>
+
   </div>
+
+
   <div class="card">
-    <label>INTERVIEW SETUP</label><h3>Tell us about the role</h3>
-    <label>Company<input id="company" placeholder="e.g. Google, Microsoft, ZenCrew"></label>
-    <label>Role<input id="role" placeholder="e.g. Software Engineer"></label>
-    <label>Resume<div class="upload" id="upload"><input id="resume" type="file" accept=".txt,.pdf,.docx"><b>↑</b><p><strong id="file">Drop your resume here</strong><small>PDF, DOCX or TXT · Max 10 MB</small></p></div></label>
-    <button class="primary" id="start">Start interview <span>→</span></button>
-    <small class="note">Your resume is processed securely by the interview backend.</small>
+
+    <label>INTERVIEW SETUP</label>
+
+    <h3>
+      Tell us about the role
+    </h3>
+
+
+    <label>
+      Company
+
+      <input
+        id="company"
+        placeholder="e.g. Google, Microsoft, ZenCrew"
+      >
+
+    </label>
+
+
+    <label>
+      Role
+
+      <input
+        id="role"
+        placeholder="e.g. Software Engineer"
+      >
+
+    </label>
+
+
+    <label>
+      Resume
+
+      <div class="upload" id="upload">
+
+        <input
+          id="resume"
+          type="file"
+          accept=".txt,.pdf,.docx"
+        >
+
+        <b>↑</b>
+
+        <p>
+          <strong id="file">
+            Drop your resume here
+          </strong>
+
+          <small>
+            PDF, DOCX or TXT · Max 10 MB
+          </small>
+
+        </p>
+
+      </div>
+
+    </label>
+
+
+    <button class="primary" id="start">
+      Start interview <span>→</span>
+    </button>
+
+    <small class="note">
+      Your resume is processed securely by the interview backend.
+    </small>
+
   </div>
+
 </section>
+
+
+<!-- =====================================================
+     INTERVIEW
+===================================================== -->
 
 <section id="interview" class="hidden">
+
 <div class="grid">
-  <div>
-    <article class="question">
-      <div class="qtop"><div class="speaker"><em>AI</em><p><b id="speaker">AI Interviewer</b><small id="speakerRole">Systems Architect</small></p></div><mark id="badge">READY</mark></div>
-      <h2 id="question">Your first interview question will appear here.</h2>
-      <button id="play" class="audio">▶ &nbsp; Play question <span>▂▅▃▆▂</span></button>
-    </article>
-    <article class="answer">
-      <div><label>YOUR ANSWER</label><span id="words">0 words</span></div>
-      <textarea id="answer" placeholder="Explain your approach clearly. Take your time..."></textarea>
-      <small>Press Ctrl + Enter to submit</small>
-      <button class="primary small" id="submit">Submit answer <span>→</span></button>
-    </article>
+
+<div>
+
+
+<!-- QUESTION -->
+
+<article class="question">
+
+  <div class="qtop">
+
+    <div class="speaker">
+
+      <em>AI</em>
+
+      <p>
+        <b id="speaker">
+          AI Interviewer
+        </b>
+
+        <small id="speakerRole">
+          Systems Architect
+        </small>
+      </p>
+
+    </div>
+
+    <mark id="badge">
+      READY
+    </mark>
+
   </div>
-  <aside class="insights">
-    <article><label>INTERVIEW SIGNAL</label><div class="orb"><i></i></div><h3 id="signal">Listening</h3><p id="signalText">Your answer will be evaluated by all three interview agents.</p></article>
-    <article><label>CURRENT FOCUS</label><h3 id="focus">Architecture</h3><div class="lines"><i></i><i></i><i></i><i></i></div></article>
-    <article id="evaluation" class="hidden"><label>LATEST EVALUATION</label><h2><span id="score">—</span><small>/ 10</small></h2><p id="feedback"></p></article>
-  </aside>
+
+
+  <h2 id="question">
+    Your first interview question will appear here.
+  </h2>
+
+
+  <button id="play" class="audio">
+    ▶ &nbsp; Play question
+    <span>▂▅▃▆▂</span>
+  </button>
+
+</article>
+
+
+<!-- TIMER -->
+
+<article class="answer">
+
+  <div>
+
+    <label>
+      YOUR ANSWER
+    </label>
+
+    <span id="timer">
+      01:30
+    </span>
+
+  </div>
+
+
+  <textarea
+    id="answer"
+    placeholder="Explain your approach clearly. Take your time..."
+  ></textarea>
+
+
+  <small>
+    Press Ctrl + Enter to submit
+  </small>
+
+
+  <button
+    class="primary small"
+    id="submit"
+  >
+    Submit answer <span>→</span>
+  </button>
+
+</article>
+
+
+<!-- EVALUATION -->
+
+<article
+  id="evaluation"
+  class="hidden"
+>
+
+  <label>
+    LATEST EVALUATION
+  </label>
+
+
+  <h2>
+    <span id="score">—</span>
+    <small>/ 10</small>
+  </h2>
+
+
+  <div id="agentResults"></div>
+
+
+  <p id="feedback"></p>
+
+
+  <button
+    class="primary small"
+    id="nextQuestion"
+  >
+    Next question <span>→</span>
+  </button>
+
+</article>
+
+
 </div>
+
+
+<!-- =====================================================
+     INSIGHTS
+===================================================== -->
+
+<aside class="insights">
+
+  <article>
+
+    <label>
+      INTERVIEW SIGNAL
+    </label>
+
+    <div class="orb">
+      <i></i>
+    </div>
+
+    <h3 id="signal">
+      Listening
+    </h3>
+
+    <p id="signalText">
+      Your answer will be evaluated by all three interview agents.
+    </p>
+
+  </article>
+
+
+  <article>
+
+    <label>
+      CURRENT FOCUS
+    </label>
+
+    <h3 id="focus">
+      Architecture
+    </h3>
+
+    <div class="lines">
+      <i></i>
+      <i></i>
+      <i></i>
+      <i></i>
+    </div>
+
+  </article>
+
+</aside>
+
+</div>
+
 </section>
 
-<section id="complete" class="complete hidden">
-<article><div>✓</div><label>INTERVIEW COMPLETE</label><h2>That's a wrap.</h2><p id="completeText"></p><button class="primary" id="again">Start another interview <span>→</span></button></article>
+
+<!-- =====================================================
+     FINAL REVIEW
+===================================================== -->
+
+<section
+  id="review"
+  class="complete hidden"
+>
+
+<article>
+
+  <div>
+    ✓
+  </div>
+
+  <label>
+    INTERVIEW REVIEW
+  </label>
+
+  <h2>
+    Interview complete.
+  </h2>
+
+
+  <h3>
+    Overall Score:
+    <span id="finalScore">
+      0
+    </span>
+    / 10
+  </h3>
+
+
+  <div id="finalAgents"></div>
+
+
+  <h3>
+    Interview Summary
+  </h3>
+
+  <div id="reviewList"></div>
+
+
+  <button
+    class="primary"
+    id="again"
+  >
+    Start another interview <span>→</span>
+  </button>
+
+</article>
+
 </section>
+
 </main>
+
 </div>
+
+
 <div id="toast"></div>
+
+
 <script src="app.js"></script>
+
 </body>
 </html>

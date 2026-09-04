@@ -814,32 +814,119 @@ function showFinalReview() {
 // TEXT TO SPEECH
 // =========================================================
 
-$("play").addEventListener(
-    "click",
-    () => {
+$("play").addEventListener("click", () => {
 
-        if (!("speechSynthesis" in window)) {
+    if (!("speechSynthesis" in window)) {
+        toast("Text-to-speech is not supported");
+        return;
+    }
 
-            return toast(
-                "Text-to-speech is not supported in this browser"
+    const button = $("play");
+
+    // Stop current speech
+    if (speechSynthesis.speaking) {
+
+        speechSynthesis.cancel();
+
+        button.classList.remove("playing");
+
+        $("playSymbol").textContent = "▶";
+        $("playLabel").textContent = "Read question aloud";
+        $("badge").textContent = "READY";
+
+        return;
+    }
+
+    const text = currentQuestion.trim();
+
+    if (!text) {
+        toast("No question available");
+        return;
+    }
+
+    // Get available voices
+    let voices = speechSynthesis.getVoices();
+
+    // Chrome / Edge sometimes loads voices late
+    if (!voices.length) {
+
+        speechSynthesis.onvoiceschanged = () => {
+            speakQuestion(text);
+        };
+
+        toast("Loading voice...");
+        return;
+    }
+
+    speakQuestion(text);
+});
+
+
+function speakQuestion(text) {
+
+    speechSynthesis.cancel();
+
+    setTimeout(() => {
+
+        const utterance =
+            new SpeechSynthesisUtterance(text);
+
+        const voices =
+            speechSynthesis.getVoices();
+
+        // Prefer English voice
+        const voice =
+            voices.find(v =>
+                v.lang.toLowerCase().startsWith("en")
             );
+
+        if (voice) {
+            utterance.voice = voice;
         }
 
-        const button =
-            $("play");
+        utterance.lang = "en-US";
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        utterance.volume = 1;
 
+        const button = $("play");
 
-        // Stop speaking
-        if (speechSynthesis.speaking) {
+        utterance.onstart = () => {
 
-            speechSynthesis.cancel();
+            button.classList.add("playing");
 
-            button.classList.remove(
-                "playing"
+            $("playSymbol").textContent = "■";
+
+            $("playLabel").textContent =
+                "Stop reading";
+
+            $("badge").textContent =
+                "SPEAKING";
+        };
+
+        utterance.onend = () => {
+
+            button.classList.remove("playing");
+
+            $("playSymbol").textContent = "▶";
+
+            $("playLabel").textContent =
+                "Read question aloud";
+
+            $("badge").textContent =
+                "READY";
+        };
+
+        utterance.onerror = (event) => {
+
+            console.error(
+                "Speech error:",
+                event.error
             );
 
-            $("playSymbol").textContent =
-                "▶";
+            button.classList.remove("playing");
+
+            $("playSymbol").textContent = "▶";
 
             $("playLabel").textContent =
                 "Read question aloud";
@@ -847,84 +934,13 @@ $("play").addEventListener(
             $("badge").textContent =
                 "READY";
 
-            return;
-        }
+            toast("Voice playback failed");
+        };
 
+        speechSynthesis.speak(utterance);
 
-        const utterance =
-            new SpeechSynthesisUtterance(
-                currentQuestion
-            );
-
-        utterance.rate =
-            0.95;
-
-
-        utterance.onstart =
-            () => {
-
-                button.classList.add(
-                    "playing"
-                );
-
-                $("playSymbol").textContent =
-                    "■";
-
-                $("playLabel").textContent =
-                    "Stop reading";
-
-                $("badge").textContent =
-                    "SPEAKING";
-            };
-
-
-        utterance.onend =
-            () => {
-
-                button.classList.remove(
-                    "playing"
-                );
-
-                $("playSymbol").textContent =
-                    "▶";
-
-                $("playLabel").textContent =
-                    "Read question aloud";
-
-                $("badge").textContent =
-                    "READY";
-            };
-
-
-        utterance.onerror =
-            () => {
-
-                button.classList.remove(
-                    "playing"
-                );
-
-                $("playSymbol").textContent =
-                    "▶";
-
-                $("playLabel").textContent =
-                    "Read question aloud";
-
-                $("badge").textContent =
-                    "READY";
-
-                toast(
-                    "Could not read the question aloud"
-                );
-            };
-
-
-        speechSynthesis.cancel();
-
-        speechSynthesis.speak(
-            utterance
-        );
-    }
-);
+    }, 150);
+}
 
 
 // =========================================================

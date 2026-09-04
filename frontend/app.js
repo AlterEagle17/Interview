@@ -1,270 +1,146 @@
 const $ = id => document.getElementById(id);
 
-
-// =====================================================
-// BACKEND
-// =====================================================
-
-const API_BASE =
-    "https://suijith-project-production.up.railway.app";
-
-
-// =====================================================
-// INTERVIEW STATE
-// =====================================================
-
-const totalQuestions = 10;
+const API_BASE = "https://suijith-project-production.up.railway.app";
+const TOTAL = 10;
+const TIME = 90;
 
 let currentQuestion = "";
-
 let questionNumber = 0;
-
 let averageScore = 0;
+let timeLeft = TIME;
+let timer = null;
+let history = [];
 
-let timerInterval = null;
+// =========================================================
+// RESUME FILE
+// =========================================================
 
-let timeLeft = 90;
-
-let interviewHistory = [];
-
-
-// =====================================================
-// AGENTS
-// =====================================================
-
-const agentElements = {
-
-    Sarah: $("agentSarah"),
-
-    Alex: $("agentAlex"),
-
-    Marcus: $("agentMarcus")
-
-};
-
-
-// =====================================================
-// RESUME
-// =====================================================
-
-$("resume").onchange = e => {
-
-    const file = e.target.files[0];
-
+$("resume").addEventListener("change", e => {
     $("file").textContent =
-        file
-            ? file.name
-            : "Drop your resume here";
-
-};
+        e.target.files[0]?.name || "Choose your resume";
+});
 
 
-// =====================================================
-// START
-// =====================================================
+// =========================================================
+// START INTERVIEW
+// =========================================================
 
-$("start").onclick = startInterview;
-
+$("start").addEventListener("click", startInterview);
 
 async function startInterview() {
 
-    const company =
-        $("company").value.trim();
-
-    const role =
-        $("role").value.trim();
-
-    const file =
-        $("resume").files[0];
-
+    const company = $("company").value.trim();
+    const role = $("role").value.trim();
+    const file = $("resume").files[0];
 
     if (!company) {
-
-        toast("Enter the company name");
-
-        return;
-
+        return toast("Enter the company name");
     }
-
 
     if (!role) {
-
-        toast("Enter the role");
-
-        return;
-
+        return toast("Enter the role");
     }
-
 
     if (!file) {
-
-        toast("Upload your resume");
-
-        return;
-
+        return toast("Upload your resume");
     }
-
 
     try {
 
         $("start").disabled = true;
+        $("start").textContent = "Starting...";
 
-        $("start").textContent =
-            "Starting...";
+        setStatus("Starting interview", true);
 
+        const resume = await file.text();
 
-        $("status").textContent =
-            "Starting interview";
+        const response = await fetch(
+            API_BASE + "/api/start-interview",
+            {
+                method: "POST",
 
+                headers: {
+                    "Content-Type": "application/json"
+                },
 
-        $("dot").classList.add("live");
-
-
-        const resume =
-            await file.text();
-
-
-        const response =
-            await fetch(
-                `${API_BASE}/api/start-interview`,
-                {
-
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body: JSON.stringify({
-
-                        company,
-
-                        role,
-
-                        resume
-
-                    })
-
-                }
-            );
-
+                body: JSON.stringify({
+                    company: company,
+                    role: role,
+                    resume: resume
+                })
+            }
+        );
 
         if (!response.ok) {
-
-            throw new Error(
-                "Backend request failed"
-            );
-
+            throw new Error("Start interview failed");
         }
 
-
-        const data =
-            await response.json();
-
+        const data = await response.json();
 
         if (!data.success) {
-
-            throw new Error(
-                "Interview could not start"
-            );
-
+            throw new Error("Start interview failed");
         }
 
-
-        currentQuestion =
-            data.question;
-
-
+        currentQuestion = data.question;
         questionNumber = 1;
-
+        history = [];
         averageScore = 0;
 
-        interviewHistory = [];
+        $("setup").classList.add("hidden");
 
+        $("review").classList.add("hidden");
 
-        $("setup")
-            .classList
-            .add("hidden");
+        $("interview").classList.remove("hidden");
 
-
-        $("interview")
-            .classList
-            .remove("hidden");
-
-
-        $("title").textContent =
-            `${role} interview`;
-
-
-        $("status").textContent =
-            "Interview active";
-
+        $("title").textContent = role + " interview";
 
         renderQuestion();
 
-
-    }
-
-    catch (error) {
+    } catch (error) {
 
         console.error(error);
 
-        toast(
-            "Could not connect to interview backend"
-        );
+        setStatus("Not started", false);
 
-    }
+        toast("Could not connect to interview backend");
 
-    finally {
+    } finally {
 
         $("start").disabled = false;
-
-        $("start").innerHTML =
-            'Start interview <span>→</span>';
-
+        $("start").textContent = "Start interview";
     }
-
 }
 
 
-// =====================================================
+// =========================================================
 // RENDER QUESTION
-// =====================================================
+// =========================================================
 
 function renderQuestion() {
 
-    $("question").textContent =
-        currentQuestion;
+    $("question").textContent = currentQuestion;
 
+    $("questionNumber").textContent =
+        String(questionNumber).padStart(2, "0");
 
     $("count").textContent =
-        `${questionNumber} / ${totalQuestions}`;
-
+        `${questionNumber} / ${TOTAL}`;
 
     $("bar").style.width =
-        `${(questionNumber / totalQuestions) * 100}%`;
-
+        (questionNumber / TOTAL * 100) + "%";
 
     $("answer").value = "";
 
+    $("words").textContent = "0 words";
 
-    $("evaluation")
-        .classList
-        .add("hidden");
+    $("evaluation").classList.add("hidden");
 
+    $("badge").textContent = "READY";
 
-    $("badge").textContent =
-        "READY";
-
-
-    $("signal").textContent =
-        "Listening";
-
+    $("signal").textContent = "Listening";
 
     $("signalText").textContent =
-        "Take your time and answer clearly.";
-
+        "Take your time. Your answer will be reviewed by all three agents.";
 
     $("focus").textContent =
         questionNumber % 3 === 0
@@ -273,340 +149,254 @@ function renderQuestion() {
                 ? "Problem solving"
                 : "Architecture";
 
-
-    $("speakerRole").textContent =
-        "AI Interviewer";
-
+    resetAgents();
 
     startTimer();
-
 }
 
 
-// =====================================================
+// =========================================================
 // TIMER
-// =====================================================
+// =========================================================
 
 function startTimer() {
 
-    clearInterval(timerInterval);
+    clearInterval(timer);
 
-
-    timeLeft = 90;
+    timeLeft = TIME;
 
     updateTimer();
 
+    timer = setInterval(() => {
 
-    timerInterval =
-        setInterval(() => {
+        timeLeft--;
 
-            timeLeft--;
+        updateTimer();
 
-            updateTimer();
+        if (timeLeft <= 0) {
 
+            clearInterval(timer);
 
-            if (timeLeft <= 0) {
+            toast("Time is up. Submitting your answer...");
 
-                clearInterval(timerInterval);
+            submitAnswer(true);
+        }
 
-                toast(
-                    "Time is up. Submitting answer..."
-                );
-
-                submitAnswer();
-
-            }
-
-        }, 1000);
-
+    }, 1000);
 }
 
 
 function updateTimer() {
 
     const minutes =
-        Math.floor(timeLeft / 60)
-            .toString()
-            .padStart(2, "0");
-
+        String(Math.floor(timeLeft / 60)).padStart(2, "0");
 
     const seconds =
-        (timeLeft % 60)
-            .toString()
-            .padStart(2, "0");
-
+        String(timeLeft % 60).padStart(2, "0");
 
     $("timer").textContent =
         `${minutes}:${seconds}`;
 
+    $("timer").classList.toggle(
+        "warning",
+        timeLeft <= 30 && timeLeft > 10
+    );
+
+    $("timer").classList.toggle(
+        "danger",
+        timeLeft <= 10
+    );
 }
 
 
-// =====================================================
+// =========================================================
 // WORD COUNT
-// =====================================================
+// =========================================================
 
-$("answer").oninput =
-    updateWordCount;
+$("answer").addEventListener("input", () => {
 
-
-function updateWordCount() {
-
-    const text =
-        $("answer")
-            .value
-            .trim();
-
+    const text = $("answer").value.trim();
 
     const count =
         text
             ? text.split(/\s+/).length
             : 0;
 
-
     $("words").textContent =
-        `${count} words`;
+        count + " words";
+});
 
-}
 
-
-// =====================================================
+// =========================================================
 // CTRL + ENTER
-// =====================================================
+// =========================================================
 
-$("answer").onkeydown = e => {
+$("answer").addEventListener("keydown", e => {
 
-    if (
-        e.ctrlKey &&
-        e.key === "Enter"
-    ) {
+    if (e.ctrlKey && e.key === "Enter") {
 
-        submitAnswer();
-
+        submitAnswer(false);
     }
-
-};
-
-
-// =====================================================
-// SUBMIT
-// =====================================================
-
-$("submit").onclick =
-    submitAnswer;
+});
 
 
-async function submitAnswer() {
+// =========================================================
+// SUBMIT ANSWER
+// =========================================================
+
+$("submit").addEventListener(
+    "click",
+    () => submitAnswer(false)
+);
+
+
+async function submitAnswer(fromTimer = false) {
 
     const answer =
-        $("answer")
-            .value
-            .trim();
-
-
-    if (!answer) {
-
-        toast(
-            "Write an answer first"
-        );
-
-        return;
-
-    }
-
-
-    clearInterval(timerInterval);
-
-
-    const company =
-        $("company")
-            .value
-            .trim();
-
-
-    const role =
-        $("role")
-            .value
-            .trim();
-
+        $("answer").value.trim();
 
     const file =
-        $("resume")
-            .files[0];
+        $("resume").files[0];
 
+    if (!answer && !fromTimer) {
+
+        return toast("Write an answer first");
+    }
 
     if (!file) {
 
-        toast(
-            "Resume is missing"
-        );
-
-        return;
-
+        return toast("Resume is missing");
     }
 
+    clearInterval(timer);
 
     try {
 
         $("submit").disabled = true;
 
+        $("nextQuestion").disabled = true;
 
         $("badge").textContent =
             "EVALUATING";
 
-
         $("signal").textContent =
             "Three agents evaluating";
 
-
         $("signalText").textContent =
-            "Sarah, Alex and Marcus are reviewing your answer.";
+            "Sarah, Alex and Marcus are reviewing your answer in parallel.";
 
+        setAgent("Sarah", "evaluating");
+        setAgent("Alex", "evaluating");
+        setAgent("Marcus", "evaluating");
 
         const resume =
             await file.text();
 
-
-        // =============================================
-        // EVALUATE
-        // =============================================
-
         const response =
             await fetch(
-                `${API_BASE}/api/evaluate-answer`,
+                API_BASE + "/api/evaluate-answer",
                 {
-
                     method: "POST",
 
                     headers: {
-                        "Content-Type":
-                            "application/json"
+                        "Content-Type": "application/json"
                     },
 
                     body: JSON.stringify({
 
-                        company,
+                        company:
+                            $("company").value.trim(),
 
-                        role,
+                        role:
+                            $("role").value.trim(),
 
-                        resume,
+                        resume:
+                            resume,
 
                         question:
                             currentQuestion,
 
-                        answer
-
+                        answer:
+                            answer ||
+                            "(No answer submitted before time expired.)"
                     })
-
                 }
             );
-
 
         if (!response.ok) {
 
             throw new Error(
-                "Evaluation request failed"
+                "Evaluation failed"
             );
-
         }
 
-
-        const evaluation =
+        const data =
             await response.json();
 
-
-        if (!evaluation.success) {
+        if (!data.success) {
 
             throw new Error(
                 "Evaluation failed"
             );
-
         }
 
-
         averageScore =
-            evaluation.average_score;
+            Number(data.average_score) || 0;
 
+        history.push({
 
-        const scoreOutOf10 =
-            (
-                averageScore / 10
-            ).toFixed(1);
-
-
-        $("score").textContent =
-            scoreOutOf10;
-
-
-        // =============================================
-        // STORE HISTORY
-        // =============================================
-
-        interviewHistory.push({
-
-            questionNumber,
+            questionNumber:
+                questionNumber,
 
             question:
                 currentQuestion,
 
-            answer,
+            answer:
+                answer ||
+                "(No answer submitted before time expired.)",
 
-            averageScore,
+            averageScore:
+                averageScore,
 
             evaluations:
-                evaluation.evaluations
-
+                data.evaluations || []
         });
 
+        $("score").textContent =
+            (averageScore / 10).toFixed(1);
 
-        // =============================================
-        // SHOW 3 AGENTS
-        // =============================================
-
-        renderAgentResults(
-            evaluation.evaluations
+        renderResults(
+            data.evaluations || []
         );
 
-
         $("feedback").textContent =
-            "Review the evaluation above before continuing.";
+            "All three agents have finished. Review the feedback, then continue when you are ready.";
 
-
-        $("evaluation")
-            .classList
-            .remove("hidden");
-
+        $("evaluation").classList.remove(
+            "hidden"
+        );
 
         $("badge").textContent =
             "EVALUATED";
 
-
         $("signal").textContent =
             "Evaluation complete";
 
-
         $("signalText").textContent =
-            "Your answer has been reviewed by all three AI agents.";
+            "You control when to continue.";
 
+        if (questionNumber >= TOTAL) {
 
-        // =============================================
-        // IMPORTANT:
-        // NO AUTOMATIC NEXT QUESTION
-        // =============================================
+            $("nextQuestion").innerHTML =
+                'View final review <span>→</span>';
 
-        if (
-            questionNumber >=
-            totalQuestions
-        ) {
+        } else {
 
-            $("nextQuestion").textContent =
-                "View final review →";
-
+            $("nextQuestion").innerHTML =
+                'Next question <span>→</span>';
         }
 
-    }
-
-    catch (error) {
+    } catch (error) {
 
         console.error(error);
 
@@ -617,165 +407,179 @@ async function submitAnswer() {
         $("badge").textContent =
             "ERROR";
 
-    }
+        resetAgents();
 
-    finally {
+    } finally {
 
         $("submit").disabled = false;
 
+        $("nextQuestion").disabled = false;
     }
-
 }
 
 
-// =====================================================
-// AGENT RESULTS
-// =====================================================
+// =========================================================
+// AGENT STATUS
+// =========================================================
 
-function renderAgentResults(
-    evaluations
-) {
+function resetAgents() {
 
-    const container =
-        $("agentResults");
-
-
-    container.innerHTML = "";
+    setAgent("Sarah", "idle");
+    setAgent("Alex", "idle");
+    setAgent("Marcus", "idle");
+}
 
 
-    evaluations.forEach(agent => {
+function setAgent(name, state) {
 
-        const score =
-            (
-                agent.score / 10
-            ).toFixed(1);
+    const element =
+        $("agent" + name);
 
+    const check =
+        $("check" + name);
+
+    element.classList.remove(
+        "evaluating",
+        "evaluated"
+    );
+
+    if (state === "evaluating") {
+
+        element.classList.add(
+            "evaluating"
+        );
+
+        check.textContent =
+            "…";
+
+    } else if (state === "evaluated") {
+
+        element.classList.add(
+            "evaluated"
+        );
+
+        check.textContent =
+            "✓";
+
+    } else {
+
+        check.textContent =
+            "—";
+    }
+}
+
+
+// =========================================================
+// DISPLAY AGENT RESULTS
+// =========================================================
+
+function renderResults(list) {
+
+    $("agentResults").innerHTML = "";
+
+    list.forEach(agent => {
+
+        setAgent(
+            agent.agent,
+            "evaluated"
+        );
 
         const card =
             document.createElement("div");
 
-
         card.className =
-            "agent-result";
-
+            "result";
 
         card.innerHTML = `
 
-            <strong>
-                ${agent.agent}
-            </strong>
+            <b>
+                ${esc(agent.agent)}
+            </b>
 
             <span>
-                ${score}/10
+                ${(
+                    (Number(agent.score) || 0) / 10
+                ).toFixed(1)}/10
             </span>
 
             <p>
-                ${agent.feedback}
+                ${esc(
+                    agent.feedback ||
+                    "No feedback."
+                )}
             </p>
-
         `;
 
-
-        container.appendChild(card);
-
-
-        // Highlight all agents
-        if (
-            agentElements[agent.agent]
-        ) {
-
-            agentElements[
-                agent.agent
-            ].classList.add("evaluated");
-
-        }
-
+        $("agentResults").appendChild(
+            card
+        );
     });
-
 }
 
 
-// =====================================================
-// NEXT QUESTION BUTTON
-// =====================================================
+// =========================================================
+// NEXT QUESTION
+// =========================================================
 
-$("nextQuestion").onclick =
-    nextQuestion;
+$("nextQuestion").addEventListener(
+    "click",
+    nextQuestion
+);
 
 
 async function nextQuestion() {
 
-    // =============================================
-    // FINAL QUESTION
-    // =============================================
+    if (questionNumber >= TOTAL) {
 
-    if (
-        questionNumber >=
-        totalQuestions
-    ) {
-
-        showFinalReview();
-
-        return;
-
+        return showFinalReview();
     }
 
-
     const latest =
-        interviewHistory[
-            interviewHistory.length - 1
-        ];
-
-
-    const company =
-        $("company")
-            .value
-            .trim();
-
-
-    const role =
-        $("role")
-            .value
-            .trim();
-
+        history[history.length - 1];
 
     const file =
-        $("resume")
-            .files[0];
+        $("resume").files[0];
 
+    if (!latest || !file) {
+
+        return toast(
+            "Interview data is missing"
+        );
+    }
 
     try {
 
         $("nextQuestion").disabled = true;
 
-
         $("signal").textContent =
             "Generating next question";
 
+        $("signalText").textContent =
+            "The interviewer is adapting the next question to your performance.";
 
         const resume =
             await file.text();
 
-
         const response =
             await fetch(
-                `${API_BASE}/api/next-question`,
+                API_BASE + "/api/next-question",
                 {
-
                     method: "POST",
 
                     headers: {
-                        "Content-Type":
-                            "application/json"
+                        "Content-Type": "application/json"
                     },
 
                     body: JSON.stringify({
 
-                        company,
+                        company:
+                            $("company").value.trim(),
 
-                        role,
+                        role:
+                            $("role").value.trim(),
 
-                        resume,
+                        resume:
+                            resume,
 
                         previous_question:
                             latest.question,
@@ -785,60 +589,35 @@ async function nextQuestion() {
 
                         average_score:
                             latest.averageScore
-
                     })
-
                 }
             );
-
 
         if (!response.ok) {
 
             throw new Error(
-                "Next question request failed"
+                "Next question failed"
             );
-
         }
-
 
         const data =
             await response.json();
-
 
         if (!data.success) {
 
             throw new Error(
                 "Next question failed"
             );
-
         }
-
 
         currentQuestion =
             data.next_question;
 
-
         questionNumber++;
-
-
-        // Reset agent states
-
-        Object.values(
-            agentElements
-        ).forEach(element => {
-
-            element.classList.remove(
-                "evaluated"
-            );
-
-        });
-
 
         renderQuestion();
 
-    }
-
-    catch (error) {
+    } catch (error) {
 
         console.error(error);
 
@@ -846,321 +625,414 @@ async function nextQuestion() {
             "Could not generate next question"
         );
 
+    } finally {
+
+        $("nextQuestion").disabled = false;
     }
-
-    finally {
-
-        $("nextQuestion").disabled =
-            false;
-
-    }
-
 }
 
 
-// =====================================================
+// =========================================================
 // FINAL REVIEW
-// =====================================================
+// =========================================================
 
 function showFinalReview() {
 
-    clearInterval(timerInterval);
+    clearInterval(timer);
 
+    $("interview").classList.add(
+        "hidden"
+    );
 
-    $("interview")
-        .classList
-        .add("hidden");
-
-
-    $("review")
-        .classList
-        .remove("hidden");
-
+    $("review").classList.remove(
+        "hidden"
+    );
 
     $("status").textContent =
         "Interview completed";
 
-
     $("bar").style.width =
         "100%";
 
-
     $("count").textContent =
-        `${totalQuestions} / ${totalQuestions}`;
+        TOTAL + " / " + TOTAL;
 
-
-    // =============================================
-    // FINAL SCORE
-    // =============================================
-
-    const total =
-        interviewHistory.reduce(
-            (sum, item) =>
-                sum + item.averageScore,
-            0
-        );
-
-
-    const finalScore =
-        interviewHistory.length
-            ? (
-                total /
-                interviewHistory.length /
-                10
-            ).toFixed(1)
-            : "0.0";
-
+    const overall =
+        history.length
+            ? history.reduce(
+                (sum, item) =>
+                    sum + item.averageScore,
+                0
+            ) / history.length / 10
+            : 0;
 
     $("finalScore").textContent =
-        finalScore;
+        overall.toFixed(1);
 
 
-    // =============================================
-    // AGENT FINAL SCORES
-    // =============================================
+    // -----------------------------------------------------
+    // FINAL AGENT SCORES
+    // -----------------------------------------------------
 
-    const agentTotals = {};
+    const totals = {};
 
-
-    interviewHistory.forEach(item => {
+    history.forEach(item => {
 
         item.evaluations.forEach(agent => {
 
-            if (!agentTotals[agent.agent]) {
+            if (!totals[agent.agent]) {
 
-                agentTotals[agent.agent] = [];
-
+                totals[agent.agent] = [];
             }
 
-            agentTotals[
-                agent.agent
-            ].push(agent.score);
-
+            totals[agent.agent].push(
+                Number(agent.score) || 0
+            );
         });
-
     });
 
 
-    const finalAgents =
-        $("finalAgents");
+    $("finalAgents").innerHTML =
+        Object.entries(totals)
+            .map(([name, scores]) => {
+
+                const average =
+                    scores.reduce(
+                        (a, b) => a + b,
+                        0
+                    ) / scores.length / 10;
+
+                return `
+
+                    <div class="result">
+
+                        <b>
+                            ${esc(name)}
+                        </b>
+
+                        <span>
+                            ${average.toFixed(1)}/10
+                        </span>
+
+                        <p>
+                            Final average across
+                            ${scores.length}
+                            evaluated answers.
+                        </p>
+
+                    </div>
+                `;
+            })
+            .join("");
 
 
-    finalAgents.innerHTML = "";
+    // -----------------------------------------------------
+    // QUESTION REVIEW
+    // -----------------------------------------------------
+
+    $("reviewList").innerHTML =
+        history
+            .map(item => {
+
+                return `
+
+                    <article class="review-item">
+
+                        <div class="review-item-head">
+
+                            <h4>
+                                QUESTION
+                                ${String(
+                                    item.questionNumber
+                                ).padStart(2, "0")}
+                            </h4>
+
+                            <span class="review-score">
+                                ${(
+                                    item.averageScore / 10
+                                ).toFixed(1)}
+                                / 10
+                            </span>
+
+                        </div>
 
 
-    Object.entries(
-        agentTotals
-    ).forEach(
-        ([agent, scores]) => {
+                        <div class="review-question">
 
-            const avg =
-                scores.reduce(
-                    (a, b) => a + b,
-                    0
-                ) / scores.length;
+                            ${esc(
+                                item.question
+                            )}
+
+                        </div>
 
 
-            const card =
-                document.createElement("div");
+                        <div class="review-answer">
+
+                            <strong>
+                                Your answer:
+                            </strong>
+
+                            <br>
+
+                            ${esc(
+                                item.answer
+                            )}
+
+                        </div>
 
 
-            card.className =
-                "agent-result";
+                        <div class="review-feedback">
+
+                            <strong>
+                                Panel feedback:
+                            </strong>
+
+                            <br>
+
+                            ${item.evaluations
+                                .map(agent =>
+                                    esc(agent.agent) +
+                                    ": " +
+                                    esc(
+                                        agent.feedback ||
+                                        "No feedback."
+                                    )
+                                )
+                                .join("<br>")
+                            }
+
+                        </div>
+
+                    </article>
+                `;
+            })
+            .join("");
+}
 
 
-            card.innerHTML = `
+// =========================================================
+// TEXT TO SPEECH
+// =========================================================
 
-                <strong>
-                    ${agent}
-                </strong>
+$("play").addEventListener(
+    "click",
+    () => {
 
-                <span>
-                    ${(avg / 10).toFixed(1)}/10
-                </span>
+        if (!("speechSynthesis" in window)) {
 
-                <p>
-                    Final average evaluation
-                </p>
+            return toast(
+                "Text-to-speech is not supported in this browser"
+            );
+        }
 
-            `;
+        const button =
+            $("play");
 
 
-            finalAgents.appendChild(
-                card
+        // Stop speaking
+        if (speechSynthesis.speaking) {
+
+            speechSynthesis.cancel();
+
+            button.classList.remove(
+                "playing"
             );
 
+            $("playSymbol").textContent =
+                "▶";
+
+            $("playLabel").textContent =
+                "Read question aloud";
+
+            $("badge").textContent =
+                "READY";
+
+            return;
         }
-    );
 
 
-    // =============================================
-    // QUESTION-BY-QUESTION REVIEW
-    // =============================================
+        const utterance =
+            new SpeechSynthesisUtterance(
+                currentQuestion
+            );
 
-    const reviewList =
-        $("reviewList");
-
-
-    reviewList.innerHTML = "";
+        utterance.rate =
+            0.95;
 
 
-    interviewHistory.forEach(item => {
+        utterance.onstart =
+            () => {
 
-        const block =
-            document.createElement("div");
+                button.classList.add(
+                    "playing"
+                );
 
+                $("playSymbol").textContent =
+                    "■";
 
-        block.className =
-            "review-item";
+                $("playLabel").textContent =
+                    "Stop reading";
 
-
-        block.innerHTML = `
-
-            <h3>
-                Question ${item.questionNumber}
-            </h3>
-
-            <p>
-                <strong>Question:</strong>
-                ${item.question}
-            </p>
-
-            <p>
-                <strong>Your answer:</strong>
-                ${item.answer}
-            </p>
-
-            <p>
-                <strong>Score:</strong>
-                ${(item.averageScore / 10).toFixed(1)}/10
-            </p>
-
-            <p>
-                <strong>Feedback:</strong>
-                ${item.evaluations
-                    .map(
-                        agent =>
-                            `${agent.agent}: ${agent.feedback}`
-                    )
-                    .join(" | ")
-                }
-            </p>
-
-        `;
+                $("badge").textContent =
+                    "SPEAKING";
+            };
 
 
-        reviewList.appendChild(
-            block
+        utterance.onend =
+            () => {
+
+                button.classList.remove(
+                    "playing"
+                );
+
+                $("playSymbol").textContent =
+                    "▶";
+
+                $("playLabel").textContent =
+                    "Read question aloud";
+
+                $("badge").textContent =
+                    "READY";
+            };
+
+
+        utterance.onerror =
+            () => {
+
+                button.classList.remove(
+                    "playing"
+                );
+
+                $("playSymbol").textContent =
+                    "▶";
+
+                $("playLabel").textContent =
+                    "Read question aloud";
+
+                $("badge").textContent =
+                    "READY";
+
+                toast(
+                    "Could not read the question aloud"
+                );
+            };
+
+
+        speechSynthesis.cancel();
+
+        speechSynthesis.speak(
+            utterance
         );
-
-    });
-
-}
-
-
-// =====================================================
-// PLAY QUESTION
-// =====================================================
-
-$("play").onclick = () => {
-
-    if (
-        $("play")
-            .dataset
-            .playing
-    ) {
-
-        return;
-
     }
+);
 
 
-    $("play")
-        .dataset
-        .playing = "1";
+// =========================================================
+// STATUS
+// =========================================================
 
+function setStatus(text, live) {
 
-    $("badge").textContent =
-        "SPEAKING";
+    $("status").textContent =
+        text;
 
-
-    $("play")
-        .firstChild
-        .textContent =
-        "Playing... ";
-
-
-    setTimeout(() => {
-
-        $("play")
-            .dataset
-            .playing = "";
-
-
-        $("play")
-            .firstChild
-            .textContent =
-            "▶  Play question ";
-
-
-        $("badge").textContent =
-            "READY";
-
-    }, 1800);
-
-};
-
-
-// =====================================================
-// RESET
-// =====================================================
-
-function reset() {
-
-    location.reload();
-
+    $("dot").classList.toggle(
+        "live",
+        live
+    );
 }
 
 
-$("reset").onclick =
-    reset;
-
-
-$("again").onclick =
-    reset;
-
-
-// =====================================================
+// =========================================================
 // TOAST
-// =====================================================
+// =========================================================
 
-function toast(message) {
+function toast(text) {
 
     const element =
         $("toast");
 
-
     element.textContent =
-        message;
-
+        text;
 
     element.classList.add(
         "show"
     );
 
-
     clearTimeout(
-        window.tt
+        window.toastTimer
     );
 
-
-    window.tt =
+    window.toastTimer =
         setTimeout(() => {
 
             element.classList.remove(
                 "show"
             );
 
-        }, 2200);
-
+        }, 2400);
 }
+
+
+// =========================================================
+// HTML ESCAPE
+// =========================================================
+
+function esc(value) {
+
+    return String(value)
+
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
+}
+
+
+// =========================================================
+// RESET
+// =========================================================
+
+function reset() {
+
+    clearInterval(timer);
+
+    if ("speechSynthesis" in window) {
+
+        speechSynthesis.cancel();
+    }
+
+    location.reload();
+}
+
+
+$("reset").addEventListener(
+    "click",
+    reset
+);
+
+
+$("again").addEventListener(
+    "click",
+    reset
+);
